@@ -7,7 +7,7 @@
 				v-for="{ region, background, text } in colorScheme"
 			>
 				<button
-					v-on:click="sendInputToParent('region', region)"
+					v-on:click="sendInputToParent('regions', region)"
 					v-bind:style="{ backgroundColor: background, color: text }"
 				>
 					{{ region }}
@@ -23,9 +23,30 @@
 		<div>
 			<h3>Reasons for Connection:</h3>
 			<div class="buttonContainer" v-for="{ activity } in activities">
-				<button v-on:click="sendInputToParent('activity', activity)">
+				<button
+					v-on:click="handler(activity)"
+					:id="activity"
+					class="reasons"
+				>
 					{{ activity }}
 				</button>
+			</div>
+		</div>
+		<br />
+		<br />
+		<br />
+		<br />
+		<div>
+			<h3>Community Age</h3>
+			<div class="slidecontainer">
+				<input
+					type="range"
+					min="0"
+					max="99"
+					value="0"
+					class="slider"
+					id="timeSlider"
+				/>
 			</div>
 		</div>
 	</div>
@@ -35,6 +56,11 @@
 import Vue from 'vue'
 
 const colorScheme = [
+	{
+		region: 'all',
+		background: 'white',
+		text: 'black',
+	},
 	{
 		region: 'North America (U.S. and Canada)',
 		background: '#FF6D6F',
@@ -64,13 +90,14 @@ const colorScheme = [
 ]
 
 const activities = [
-	{ activity: 'physical distance' },
-	{ activity: 'share food' },
-	{ activity: 'chilling buddies' },
-	{ activity: 'academic' },
-	{ activity: 'cultural' },
+	{ activity: 'none' },
+	{ activity: 'physical proximity' },
+	{ activity: 'food sharing' },
+	{ activity: 'chilling together' },
+	{ activity: 'academic studies' },
+	{ activity: 'shared culture' },
 	{ activity: 'interests' },
-	{ activity: 'shared experience' },
+	{ activity: 'shared experiences' },
 	{ activity: 'religion' },
 	{ activity: 'randomness' },
 ]
@@ -87,11 +114,28 @@ export default Vue.extend({
 		sendInputToParent(key: string, input: string) {
 			this.$emit('clicked', { key, input })
 		},
+		changeButtonClass(id: string) {
+			const reasons = document.getElementsByClassName('reasons')
+			for (const reason of reasons) {
+				if (reason.id === id) {
+					if (reason.classList.contains('active')) {
+						reason.classList.remove('active')
+					} else {
+						reason.classList.add('active')
+					}
+				} else {
+					reason.classList.remove('active')
+				}
+			}
+		},
+		handler(activity: string) {
+			this.sendInputToParent('reasons', activity)
+			this.changeButtonClass(activity)
+		},
 	},
 })
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 button {
 	border-radius: 5px;
@@ -105,5 +149,13 @@ button {
 }
 
 .container {
+}
+
+.active {
+	background-color: silver;
+}
+
+#timeSlider {
+	width: 80%;
 }
 </style>

@@ -1,13 +1,19 @@
 <template>
-	<svg
+	<div>
+		<div id="menu">
+			<img
+src="../menu.png" width="50" v-on:click="fadeIn" />
+		</div>
+		<svg
 id="visualisation" :width="width" :height="height"></svg>
+	</div>
 </template>
 
 <script lang="ts">
 import Vue, { PropType } from 'vue'
 import * as d3 from 'd3'
 import data from '../data'
-import { Mode, ColorScheme } from '../App.vue'
+import { Update, ColorScheme } from '../App.vue'
 
 const width = 850
 const height = 625
@@ -88,16 +94,43 @@ const simulation: d3.Simulation<SimNode, SimLink> = d3
 	.forceSimulation<SimNode, SimLink>(nodes)
 	.force('link', d3.forceLink(links))
 	.force('charge', d3.forceManyBody().strength(-12))
-	.force('center', d3.forceCenter(width / 2.5, height / 2.3))
+	.force('center', d3.forceCenter(width / 2.15, height / 2.15))
+
+// todo fix types
+
+interface State {
+	regions: {
+		[region: string]: any
+	}
+	reasons: {
+		[reason: string]: any
+	}
+	time: {
+		[step: string]: any
+	}
+}
+
+const state: State = {
+	regions: {
+		all: true,
+	},
+	reasons: {
+		all: true,
+	},
+	time: {
+		step: 0,
+	},
+}
 
 export default Vue.extend({
 	name: 'introduction',
 	props: {
-		mode: Object as PropType<Mode>,
+		update: Object as PropType<Update>,
 		colorScheme: Object as PropType<ColorScheme>,
 	},
 	data() {
 		return {
+			state,
 			width,
 			height,
 			margin,
@@ -107,22 +140,99 @@ export default Vue.extend({
 		}
 	},
 	watch: {
-		mode: function() {
-			if (this.mode.key === 'region') {
-				this.nodeColor(this.mode)
+		update: function() {
+			const { state } = this
+			const { update } = this
+
+			if (state[update.key]) {
+				if (
+					update.input !== 'all' &&
+					Object.prototype.hasOwnProperty.call(
+						state[update.key],
+						'all',
+					)
+				) {
+					delete state[update.key].all
+				}
+				if (state[update.key][update.input] === true) {
+					delete state[update.key][update.input]
+				} else {
+					if (update.key === 'reasons' || update.input === 'all') {
+						state[update.key] = {
+							[update.input]: true,
+						}
+					}
+					state[update.key][update.input] = true
+				}
+			} else {
+				state[update.key] = {
+					[update.input]: true,
+				}
 			}
+			this.draw()
 		},
 	},
 	methods: {
-		nodeColor: function(mode: Mode) {
+		draw: function() {
+			this.colorNodes()
+			this.colorLinks()
+		},
+		colorNodes: function() {
 			nodes.forEach(node => {
-				if (nodeByIndex.get(node.index).region === mode.input) {
+				if (
+					Object.prototype.hasOwnProperty.call(
+						this.state.regions,
+						nodeByIndex.get(node.index).region,
+					) ||
+					this.state.regions['all']
+				) {
 					d3.select(`#circle${node.index}`).attr(
 						'fill',
 						this.colorScheme[nodeByIndex.get(node.index).region],
 					)
 				} else {
 					d3.select(`#circle${node.index}`).attr('fill', 'grey')
+				}
+			})
+		},
+		colorLinks: function() {
+			data.links.forEach((link, i) => {
+				if (
+					(Object.prototype.hasOwnProperty.call(
+						this.state.regions,
+						nodeByIndex.get(link.source).region,
+					) &&
+						Object.prototype.hasOwnProperty.call(
+							this.state.regions,
+							nodeByIndex.get(link.target).region,
+						)) ||
+					this.state.regions['all']
+				) {
+					let active = false
+					Object.entries(link).forEach(prop => {
+						if (
+							prop[1] === 1 &&
+							Object.prototype.hasOwnProperty.call(
+								state.reasons,
+								prop[0],
+							)
+						) {
+							active = true
+						}
+					})
+					if (active) {
+						d3.select(`#line${i}`)
+							.style('stroke', 'yellow')
+							.style('stroke-width', 5)
+					} else {
+						d3.select(`#line${i}`)
+							.style('stroke-width', 1)
+							.style('stroke', 'black')
+					}
+				} else {
+					d3.select(`#line${i}`)
+						.style('stroke-width', 1)
+						.style('stroke', 'black')
 				}
 			})
 		},
@@ -148,10 +258,15 @@ export default Vue.extend({
 								nodeByIndex.get(node.index).region
 							],
 						)
-						d3.select(`#link${link.index}`).attr('stroke', 'yellow')
+
+						d3.select(`#line${link.index}`)
+							.style('stroke-width', 5)
+							.style('stroke', 'yellow')
 						associated = true
 					} else {
-						d3.select(`#link${link.index}`).attr('fill', 'grey')
+						d3.select(`#line${link.index}`)
+							.style('stroke-width', 1)
+							.style('stroke', 'black')
 					}
 				})
 				if (!associated && node.index !== i) {
@@ -160,12 +275,10 @@ export default Vue.extend({
 			})
 		},
 		handleMouseOut: function() {
-			nodes.forEach(node => {
-				d3.select(`#circle${node.index}`).attr(
-					'fill',
-					this.colorScheme[nodeByIndex.get(node.index).region],
-				)
-			})
+			this.draw()
+		},
+		fadeIn: function() {
+			this.$emit('clicked', { key: 'dimmer', input: true })
 		},
 	},
 	mounted: function() {
@@ -224,4 +337,10 @@ interface LinkElement {
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+#menu {
+	position: absolute;
+	margin: 1.5rem;
+	opacity: 0.5;
+}
+</style>

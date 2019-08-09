@@ -3,7 +3,11 @@
 		<introduction @clicked="dimmerClick" v-bind="{ dimmer }">
 		</introduction>
 		<div id="visual">
-			<visualisation v-bind="{ mode, colorScheme }"> </visualisation>
+			<visualisation
+				v-bind="{ update, colorScheme }"
+				@clicked="dimmerClick"
+			>
+			</visualisation>
 		</div>
 
 		<div id="timeline"></div>
@@ -29,6 +33,7 @@ export interface ColorScheme {
 }
 
 const colorScheme: ColorScheme = {
+	'all': 'white',
 	'North America (U.S. and Canada)': '#FF6D6F',
 	'Europe': '#FF7F00',
 	'East Asia': '#FFFF32',
@@ -41,9 +46,9 @@ const colorScheme: ColorScheme = {
 	'Pacific and Oceania': '#000000',
 }
 
-export interface Mode {
-	key: string
-	input: string
+export interface Update {
+	key: 'regions' | 'reasons' | 'time'
+	input: string | number
 }
 
 interface DimmerClick {
@@ -52,8 +57,8 @@ interface DimmerClick {
 }
 
 const dimmer = true
-const mode: Mode = {
-	key: 'all',
+const update: Update = {
+	key: 'regions',
 	input: 'all',
 }
 
@@ -69,13 +74,13 @@ export default Vue.extend({
 	data() {
 		return {
 			dimmer,
-			mode,
+			update,
 			colorScheme,
 		}
 	},
 	methods: {
-		visualUpdate(data: Mode) {
-			this.mode = data
+		visualUpdate(data: Update) {
+			this.update = data
 		},
 		dimmerClick(data: DimmerClick) {
 			this.dimmer = data.input
@@ -112,6 +117,6 @@ body {
 
 #menu {
 	display: grid;
-	grid-template-rows: 1fr 1fr;
+	grid-template-rows: 2fr 3fr;
 }
 </style>
