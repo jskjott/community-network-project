@@ -1,9 +1,5 @@
 <template>
-	<div>
-		<div id="menu">
-			<img
-src="../menu.png" width="50" v-on:click="fadeIn" />
-		</div>
+	<div id="container">
 		<svg
 id="visualisation" :width="width" :height="height"></svg>
 	</div>
@@ -15,8 +11,6 @@ import * as d3 from 'd3'
 import data from '../data'
 import { Update, ColorScheme } from '../App.vue'
 
-const width = 850
-const height = 625
 const radius = 6
 const margin = { top: 20, right: 20, bottom: 20, left: 20 }
 
@@ -38,33 +32,6 @@ interface Node {
 	fx: number | null
 	fy: number | null
 }
-
-//const drag = (simulation: d3.Simulation<SimNode, SimLink>) => {
-//	//todo fix types//
-
-//	function dragstarted(d: any) {
-//		if (!d3.event.active) simulation.alphaTarget(0.3).restart()
-//		d.fx = d.x
-//		d.fy = d.y
-//	}//
-
-//	function dragged(d: any) {
-//		d.fx = d3.event.x
-//		d.fy = d3.event.y
-//	}//
-
-//	function dragended(d: any) {
-//		if (!d3.event.active) simulation.alphaTarget(0)
-//		d.fx = null
-//		d.fy = null
-//	}//
-
-//	return d3
-//		.drag()
-//		.on('start', dragstarted)
-//		.on('drag', dragged)
-//		.on('end', dragended)
-//}
 
 const nodes = data.nodes.map(d => Object.create(d))
 
@@ -90,12 +57,6 @@ data.links.forEach(link => {
 	link.target = nodeById.get(link.target)
 })
 
-const simulation: d3.Simulation<SimNode, SimLink> = d3
-	.forceSimulation<SimNode, SimLink>(nodes)
-	.force('link', d3.forceLink(links))
-	.force('charge', d3.forceManyBody().strength(-12))
-	.force('center', d3.forceCenter(width / 2.15, height / 2.15))
-
 // todo fix types
 
 interface State {
@@ -106,7 +67,7 @@ interface State {
 		[reason: string]: any
 	}
 	time: {
-		[step: string]: any
+		step: number
 	}
 }
 
@@ -118,21 +79,23 @@ const state: State = {
 		all: true,
 	},
 	time: {
-		step: 0,
+		step: 1,
 	},
 }
+
+let simulation: d3.Simulation<SimNode, SimLink> | null = null
 
 export default Vue.extend({
 	name: 'introduction',
 	props: {
 		update: Object as PropType<Update>,
 		colorScheme: Object as PropType<ColorScheme>,
+		width: Number,
+		height: Number,
 	},
 	data() {
 		return {
 			state,
-			width,
-			height,
 			margin,
 			nodes,
 			links,
@@ -144,7 +107,13 @@ export default Vue.extend({
 			const { state } = this
 			const { update } = this
 
-			if (state[update.key]) {
+			if (update.key === 'time') {
+				const input =
+					typeof update.input === 'string'
+						? parseInt(update.input)
+						: update.input
+				this.state.time.step = input
+			} else if (state[update.key]) {
 				if (
 					update.input !== 'all' &&
 					Object.prototype.hasOwnProperty.call(
@@ -197,16 +166,19 @@ export default Vue.extend({
 		},
 		colorLinks: function() {
 			data.links.forEach((link, i) => {
+				const { all } = this.state.regions
+				const sourceSelected = Object.prototype.hasOwnProperty.call(
+					this.state.regions,
+					nodeByIndex.get(link.source).region,
+				)
+				const targetSelected = Object.prototype.hasOwnProperty.call(
+					this.state.regions,
+					nodeByIndex.get(link.target).region,
+				)
+
 				if (
-					(Object.prototype.hasOwnProperty.call(
-						this.state.regions,
-						nodeByIndex.get(link.source).region,
-					) &&
-						Object.prototype.hasOwnProperty.call(
-							this.state.regions,
-							nodeByIndex.get(link.target).region,
-						)) ||
-					this.state.regions['all']
+					link.time === state.time.step &&
+					((sourceSelected && targetSelected) || all)
 				) {
 					let active = false
 					Object.entries(link).forEach(prop => {
@@ -220,18 +192,12 @@ export default Vue.extend({
 							active = true
 						}
 					})
-					if (active) {
-						d3.select(`#line${i}`)
-							.style('stroke', 'yellow')
-							.style('stroke-width', 5)
-					} else {
-						d3.select(`#line${i}`)
-							.style('stroke-width', 1)
-							.style('stroke', 'black')
-					}
+					d3.select(`#line${i}`)
+						.style('stroke-width', active ? 5 : 1)
+						.style('stroke', active ? 'yellow' : 'black')
 				} else {
 					d3.select(`#line${i}`)
-						.style('stroke-width', 1)
+						.style('stroke-width', 0)
 						.style('stroke', 'black')
 				}
 			})
@@ -245,12 +211,14 @@ export default Vue.extend({
 				return linkElement
 			})
 
+			const activeLinks: number[] = []
 			nodes.forEach(node => {
 				let associated = false
-				linkArray.forEach((link: LinkElement) => {
+				linkArray.forEach((link: LinkElement, linkIndex: number) => {
 					if (
 						link.targets.includes(node.index) &&
-						link.targets.includes(i)
+						link.targets.includes(i) &&
+						data.links[linkIndex].time === this.state.time.step
 					) {
 						d3.select(`#circle${node.index}`).attr(
 							'fill',
@@ -259,13 +227,11 @@ export default Vue.extend({
 							],
 						)
 
-						d3.select(`#line${link.index}`)
-							.style('stroke-width', 5)
-							.style('stroke', 'yellow')
+						activeLinks.push(link.index)
 						associated = true
 					} else {
 						d3.select(`#line${link.index}`)
-							.style('stroke-width', 1)
+							.style('stroke-width', 0)
 							.style('stroke', 'black')
 					}
 				})
@@ -273,15 +239,27 @@ export default Vue.extend({
 					d3.select(`#circle${node.index}`).attr('fill', 'grey')
 				}
 			})
+			activeLinks.forEach(link => {
+				d3.select(`#line${link}`)
+					.style('stroke-width', 5)
+					.style('stroke', 'yellow')
+			})
 		},
 		handleMouseOut: function() {
 			this.draw()
 		},
-		fadeIn: function() {
-			this.$emit('clicked', { key: 'dimmer', input: true })
-		},
 	},
 	mounted: function() {
+		const simulation: d3.Simulation<SimNode, SimLink> = d3
+			.forceSimulation<SimNode, SimLink>(nodes)
+			.force('link', d3.forceLink(links))
+			.force('charge', d3.forceManyBody().strength(-12))
+			.force(
+				'center',
+				d3.forceCenter(this.width / 2.15, this.height / 2.15),
+			)
+		this.simulation = simulation
+
 		const svg = d3.select('#visualisation')
 
 		const link = svg
@@ -311,6 +289,9 @@ export default Vue.extend({
 			.on('mouseover', this.handleMouseOver)
 			.on('mouseout', this.handleMouseOut)
 
+		this.colorNodes()
+		this.colorLinks()
+
 		simulation.on('tick', () => {
 			link.attr('x1', d => d.source.x)
 				.attr('y1', d => d.source.y)
@@ -319,10 +300,18 @@ export default Vue.extend({
 
 			node.attr(
 				'cx',
-				d => (d.x = Math.max(radius, Math.min(width - radius, d.x))),
+				d =>
+					(d.x = Math.max(
+						radius,
+						Math.min(this.width - radius, d.x),
+					)),
 			).attr(
 				'cy',
-				d => (d.y = Math.max(radius, Math.min(height - radius, d.y))),
+				d =>
+					(d.y = Math.max(
+						radius,
+						Math.min(this.height - radius, d.y),
+					)),
 			)
 			node.attr('cx', d => d.x).attr('cy', d => d.y)
 		})
@@ -338,9 +327,7 @@ interface LinkElement {
 </script>
 
 <style scoped>
-#menu {
-	position: absolute;
-	margin: 1.5rem;
-	opacity: 0.5;
+svg {
+	margin: 2rem;
 }
 </style>

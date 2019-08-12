@@ -7,10 +7,11 @@
 				v-for="{ region, background, text } in colorScheme"
 			>
 				<button
+					class="filter"
 					v-on:click="sendInputToParent('regions', region)"
 					v-bind:style="{ backgroundColor: background, color: text }"
 				>
-					{{ region }}
+					<p>{{ region }}</p>
 				</button>
 			</div>
 		</div>
@@ -28,7 +29,7 @@
 					:id="activity"
 					class="reasons"
 				>
-					{{ activity }}
+					<p>{{ activity }}</p>
 				</button>
 			</div>
 		</div>
@@ -42,11 +43,17 @@
 				<input
 					type="range"
 					min="0"
-					max="99"
+					max="4"
 					value="0"
 					class="slider"
 					id="timeSlider"
+					v-bind:value="time"
+					v-on:input="e => this.update(e.target.value)"
 				/>
+				<!-- watch icon: Watch by https://thenounproject.com/Flatart/ -->
+				<button id="animation" v-on:click="toggle">
+					<img src="../watch.png" width="20px" />
+				</button>
 			</div>
 		</div>
 	</div>
@@ -102,16 +109,26 @@ const activities = [
 	{ activity: 'randomness' },
 ]
 
+const time = 1
+const animation = false
+
+interface Input {
+	isTrusted: boolean
+	type: 'input'
+}
+
 export default Vue.extend({
 	name: 'introduction',
 	data() {
 		return {
 			colorScheme,
 			activities,
+			time,
+			animation,
 		}
 	},
 	methods: {
-		sendInputToParent(key: string, input: string) {
+		sendInputToParent(key: string, input: string | number) {
 			this.$emit('clicked', { key, input })
 		},
 		changeButtonClass(id: string) {
@@ -132,6 +149,30 @@ export default Vue.extend({
 			this.sendInputToParent('reasons', activity)
 			this.changeButtonClass(activity)
 		},
+		update(input: string) {
+			this.time = parseInt(input)
+		},
+		animate() {
+			if (this.animation) {
+				this.time = (this.time + 1) % 5
+				setTimeout(() => {
+					this.animate()
+				}, 1000)
+			}
+		},
+		toggle() {
+			this.animation = this.animation ? false : true
+		},
+	},
+	watch: {
+		time: function() {
+			this.sendInputToParent('time', this.time)
+		},
+		animation: function() {
+			if (this.animation === true) {
+				this.animate()
+			}
+		},
 	},
 })
 </script>
@@ -139,7 +180,6 @@ export default Vue.extend({
 <style scoped>
 button {
 	border-radius: 5px;
-	float: left;
 	padding: 3px 5px;
 	margin: 2px 5px;
 }
@@ -157,5 +197,14 @@ button {
 
 #timeSlider {
 	width: 80%;
+	margin-right: 0.5rem;
+}
+
+.filter,
+.reasons {
+	float: left;
+}
+
+#animation {
 }
 </style>

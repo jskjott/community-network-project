@@ -4,7 +4,7 @@
 		</introduction>
 		<div id="visual">
 			<visualisation
-				v-bind="{ update, colorScheme }"
+				v-bind="{ update, colorScheme, width, height }"
 				@clicked="dimmerClick"
 			>
 			</visualisation>
@@ -53,14 +53,19 @@ export interface Update {
 
 interface DimmerClick {
 	key: string
-	input: boolean
+	input: string
 }
 
-const dimmer = true
+const dimmer = 'introduction'
 const update: Update = {
 	key: 'regions',
 	input: 'all',
 }
+
+const svgWidthRatio = 0.57
+const svgHeigthRatio = 0.9
+const width = document.body.clientWidth * svgWidthRatio
+const height = window.innerHeight * svgHeigthRatio
 
 export default Vue.extend({
 	name: 'app',
@@ -76,6 +81,8 @@ export default Vue.extend({
 			dimmer,
 			update,
 			colorScheme,
+			width,
+			height,
 		}
 	},
 	methods: {
@@ -90,21 +97,45 @@ export default Vue.extend({
 </script>
 
 <style>
+@font-face {
+	font-family: 'titillium_webbold';
+	src: url('assets/titilliumweb-bold-webfont.woff2') format('woff2'),
+		url('assets/titilliumweb-bold-webfont.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'open_sansregular';
+	src: url('assets/opensans-regular-webfont.woff2') format('woff2'),
+		url('assets/opensans-regular-webfont.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+}
+
 html,
 body {
 	margin: 0;
 	height: 100%;
 }
 
+p {
+	font-family: 'open_sansregular';
+	margin: 0;
+}
+
+h3,
+h2,
+h1 {
+	font-family: 'titillium_webbold';
+}
+
 #app {
 	margin: 0;
 	height: 100%;
 	display: grid;
-	grid-template-columns: 4fr 2fr;
-	grid-template-rows: 8fr 1fr;
-	grid-template-areas:
-		'visual menu'
-		'timeline menu';
+	grid-template-columns: 2fr 1fr;
+	grid-template-areas: 'visual menu';
 }
 
 #visual {
@@ -117,6 +148,6 @@ body {
 
 #menu {
 	display: grid;
-	grid-template-rows: 2fr 3fr;
+	grid-template-rows: 2fr 4fr;
 }
 </style>
