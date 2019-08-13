@@ -64,7 +64,9 @@
 					</div>
 				</section>
 				<div id="buttonContainer">
-					<button v-on:click="fadeIntro"><h1>Enter</h1></button>
+					<button v-on:click="fadeIntro">
+						<h1 style="padding-right: 0">Enter</h1>
+					</button>
 				</div>
 				<div id="cross" v-on:click="fadeIntro">
 					<img src="../cross.png" width="40px" />

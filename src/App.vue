@@ -1,6 +1,10 @@
 <template>
 	<div id="app">
-		<introduction @clicked="dimmerClick" v-bind="{ dimmer }">
+		<introduction
+			id="dimmerContainer"
+			@clicked="dimmerClick"
+			v-bind="{ dimmer }"
+		>
 		</introduction>
 		<div id="visual">
 			<visualisation
@@ -12,9 +16,11 @@
 
 		<div id="timeline"></div>
 
-		<div id="menu">
-			<visualToInfo> </visualToInfo>
-			<infoToVisual @clicked="visualUpdate"> </infoToVisual>
+		<div id="menuContainer">
+			<div id="menuBar">
+				<visualToInfo> </visualToInfo>
+				<infoToVisual @clicked="visualUpdate"> </infoToVisual>
+			</div>
 		</div>
 	</div>
 </template>
@@ -130,6 +136,11 @@ h1 {
 	font-family: 'titillium_webbold';
 }
 
+h1 {
+	font-size: 1.8rem;
+	padding-right: 1rem;
+}
+
 #app {
 	margin: 0;
 	height: 100%;
@@ -146,8 +157,23 @@ h1 {
 	grid-area: timeline;
 }
 
-#menu {
+#menuBar {
 	display: grid;
 	grid-template-rows: 2fr 4fr;
+	min-width: 230px;
+	background-color: rgba(255, 255, 255, 0.5);
+	margin-right: 2rem;
+}
+
+#menuContainer {
+	position: absolute;
+	top: 0;
+	right: 0;
+	z-index: 0;
+}
+
+#dimmerContainer {
+	z-index: 1;
+	position: absolute;
 }
 </style>
