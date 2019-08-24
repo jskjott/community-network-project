@@ -125,6 +125,7 @@ body {
 	height: 100%;
 }
 
+ul,
 p {
 	font-family: 'open_sansregular';
 	margin: 0;
@@ -139,6 +140,10 @@ h1 {
 h1 {
 	font-size: 1.8rem;
 	padding-right: 1rem;
+}
+
+ul {
+	line-height: 1.5;
 }
 
 #app {
@@ -159,7 +164,7 @@ h1 {
 
 #menuBar {
 	display: grid;
-	grid-template-rows: 2fr 4fr;
+	grid-template-rows: 1fr 6fr;
 	min-width: 230px;
 	background-color: rgba(255, 255, 255, 0.5);
 	margin-right: 2rem;

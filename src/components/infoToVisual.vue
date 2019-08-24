@@ -7,8 +7,9 @@
 				v-for="{ region, background, text } in colorScheme"
 			>
 				<button
-					class="filter"
-					v-on:click="sendInputToParent('regions', region)"
+					class="regions allActive"
+					:id="region"
+					v-on:click="handlerRegion(region)"
 					v-bind:style="{ backgroundColor: background, color: text }"
 				>
 					<p>{{ region }}</p>
@@ -21,13 +22,19 @@
 		<br />
 		<br />
 		<br />
+		<br />
+		<br />
+		<br />
 		<div>
 			<h3>Reasons for Connection:</h3>
-			<div class="buttonContainer" v-for="{ activity } in activities">
+			<div
+				class="buttonContainer"
+				v-for="{ activity, className } in activities"
+			>
 				<button
-					v-on:click="handler(activity)"
+					:class="className"
 					:id="activity"
-					class="reasons"
+					v-on:click="handlerConnection(activity)"
 				>
 					<p>{{ activity }}</p>
 				</button>
@@ -37,8 +44,10 @@
 		<br />
 		<br />
 		<br />
+		<br />
+		<br />
 		<div>
-			<h3>Community Age</h3>
+			<h3 style="margin: 0.4rem">Community Age</h3>
 			<div class="slidecontainer">
 				<input
 					type="range"
@@ -51,10 +60,14 @@
 					v-on:input="e => this.update(e.target.value)"
 				/>
 				<!-- watch icon: Watch by https://thenounproject.com/Flatart/ -->
-				<button id="animation" v-on:click="toggle">
+				<button
+id="animation" v-on:click="toggle" class="inactive">
 					<img src="../watch.png" width="20px" />
 				</button>
 			</div>
+			<p style="margin-left: 0.4rem; font-size: 14px">
+				{{ periods[parseInt(time)] }}
+			</p>
 		</div>
 	</div>
 </template>
@@ -97,16 +110,24 @@ const colorScheme = [
 ]
 
 const activities = [
-	{ activity: 'none' },
-	{ activity: 'physical proximity' },
-	{ activity: 'food sharing' },
-	{ activity: 'chilling together' },
-	{ activity: 'academic studies' },
-	{ activity: 'shared culture' },
-	{ activity: 'interests' },
-	{ activity: 'shared experiences' },
-	{ activity: 'religion' },
-	{ activity: 'randomness' },
+	{ activity: 'none', className: 'reasons active' },
+	{ activity: 'physical proximity', className: 'reasons inactive' },
+	{ activity: 'food sharing', className: 'reasons inactive' },
+	{ activity: 'chilling together', className: 'reasons inactive' },
+	{ activity: 'academic studies', className: 'reasons inactive' },
+	{ activity: 'shared culture', className: 'reasons inactive' },
+	{ activity: 'interests', className: 'reasons inactive' },
+	{ activity: 'shared experiences', className: 'reasons inactive' },
+	{ activity: 'religion', className: 'reasons inactive' },
+	{ activity: 'randomness', className: 'reasons inactive' },
+]
+
+const periods = [
+	'before school start',
+	'1st year',
+	'2nd year',
+	'3rd year',
+	'4th year',
 ]
 
 const time = 1
@@ -123,6 +144,7 @@ export default Vue.extend({
 		return {
 			colorScheme,
 			activities,
+			periods,
 			time,
 			animation,
 		}
@@ -131,23 +153,56 @@ export default Vue.extend({
 		sendInputToParent(key: string, input: string | number) {
 			this.$emit('clicked', { key, input })
 		},
-		changeButtonClass(id: string) {
-			const reasons = document.getElementsByClassName('reasons')
-			for (const reason of reasons) {
-				if (reason.id === id) {
-					if (reason.classList.contains('active')) {
-						reason.classList.remove('active')
-					} else {
-						reason.classList.add('active')
-					}
+		changeButtonClass(className: string, id: string) {
+			const clickedButton = document.getElementById(id)
+
+			if (clickedButton !== null) {
+				const allActive = clickedButton.classList.contains('allActive')
+				const isActive = clickedButton.classList.contains('active')
+
+				if (isActive) {
+					clickedButton.classList.remove('active')
+					clickedButton.classList.add('inactive')
+				} else if (allActive) {
+					clickedButton.classList.remove('allActive')
+					clickedButton.classList.add('active')
 				} else {
-					reason.classList.remove('active')
+					clickedButton.classList.remove('inactive')
+					clickedButton.classList.add('active')
+				}
+
+				const elements = document.getElementsByClassName(className)
+
+				for (const element of elements) {
+					const elementAllActive = element.classList.contains(
+						'allActive',
+					)
+					if (element.id !== id) {
+						if (className === 'reasons') {
+							element.classList.remove('active')
+							element.classList.add('inactive')
+						} else if (id !== 'all' && elementAllActive) {
+							element.classList.remove('allActive')
+							element.classList.remove('active')
+							element.classList.add('inactive')
+						} else if (id === 'all' && allActive) {
+							element.classList.remove('allActive')
+							element.classList.add('inactive')
+						} else if (id === 'all' && !allActive) {
+							element.classList.remove('inactive')
+							element.classList.add('allActive')
+						}
+					}
 				}
 			}
 		},
-		handler(activity: string) {
+		handlerRegion(region: string) {
+			this.sendInputToParent('regions', region)
+			this.changeButtonClass('regions', region)
+		},
+		handlerConnection(activity: string) {
 			this.sendInputToParent('reasons', activity)
-			this.changeButtonClass(activity)
+			this.changeButtonClass('reasons', activity)
 		},
 		update(input: string) {
 			this.time = parseInt(input)
@@ -162,6 +217,19 @@ export default Vue.extend({
 		},
 		toggle() {
 			this.animation = this.animation ? false : true
+
+			const button = document.getElementById('animation')
+			console.log(button)
+
+			if (button !== null) {
+				if (this.animation) {
+					button.classList.remove('inactive')
+					button.classList.add('active')
+				} else {
+					button.classList.remove('active')
+					button.classList.add('inactive')
+				}
+			}
 		},
 	},
 	watch: {
@@ -179,20 +247,26 @@ export default Vue.extend({
 
 <style scoped>
 button {
-	border-radius: 5px;
-	padding: 3px 5px;
+	border-radius: 1px;
+	padding: 6px 8px;
 	margin: 2px 5px;
 }
 
 .buttonContainer {
 	width: 100%;
+	height: auto;
 }
 
 .container {
 }
 
+.allActive,
 .active {
 	background-color: silver;
+}
+
+.inactive {
+	filter: grayscale(1);
 }
 
 #timeSlider {
@@ -200,7 +274,7 @@ button {
 	margin-right: 0.5rem;
 }
 
-.filter,
+.regions,
 .reasons {
 	float: left;
 }
