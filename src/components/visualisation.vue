@@ -31,6 +31,12 @@ interface Node {
 	y: number
 	fx: number | null
 	fy: number | null
+	index?: number
+	links?: {
+		[nodeIndex: number]: {
+			[time: number]: number
+		}
+	}
 }
 
 const nodes = data.nodes.map(d => Object.create(d))
@@ -68,6 +74,16 @@ interface State {
 	}
 	time: {
 		step: number
+	}
+}
+
+interface LinkElement {
+	index: number
+	source: {
+		index: number
+	}
+	target: {
+		index: number
 	}
 }
 
@@ -202,48 +218,37 @@ export default Vue.extend({
 				}
 			})
 		},
-		handleMouseOver: function(d: object, i: number) {
-			const linkArray: LinkElement[] = links.map(link => {
-				const linkElement = {
-					index: link.index,
-					targets: [link.source.index, link.target.index],
+		handleMouseOver: function(d: Node, i: number) {
+			const activeLinks: number[] = []
+
+			links.forEach((link, index) => {
+				if (data.links[index].time === this.state.time.step) {
+					d3.select(`#line${link.index}`)
+						.style('stroke-width', 1)
+						.style('stroke', 'black')
 				}
-				return linkElement
 			})
 
-			const activeLinks: number[] = []
 			nodes.forEach(node => {
-				let associated = false
-				linkArray.forEach((link: LinkElement, linkIndex: number) => {
-					if (
-						link.targets.includes(node.index) &&
-						link.targets.includes(i) &&
-						data.links[linkIndex].time === this.state.time.step
-					) {
-						d3.select(`#circle${node.index}`).attr(
-							'fill',
-							this.colorScheme[
-								nodeByIndex.get(node.index).region
-							],
-						)
-
-						activeLinks.push(link.index)
-						associated = true
-					} else {
-						d3.select(`#line${link.index}`)
-							.style('stroke-width', 0)
-							.style('stroke', 'black')
-					}
-				})
-				if (!associated && node.index !== i) {
+				if (
+					d.links !== undefined &&
+					d.links[node.index] &&
+					d.links[node.index][this.state.time.step] !== undefined
+				) {
+					d3.select(`#circle${node.index}`).attr(
+						'fill',
+						this.colorScheme[nodeByIndex.get(node.index).region],
+					)
+					activeLinks.push(d.links[node.index][this.state.time.step])
+				} else if (node.index !== i) {
 					d3.select(`#circle${node.index}`).attr('fill', 'grey')
 				}
-			})
-			activeLinks.forEach(link => {
-				d3.select(`#line${link}`)
-					.style('stroke-width', 5)
-					.style('stroke', 'yellow')
-			})
+			}),
+				activeLinks.forEach(link => {
+					d3.select(`#line${link}`)
+						.style('stroke-width', 5)
+						.style('stroke', 'yellow')
+				})
 		},
 		handleMouseOut: function() {
 			this.draw()
@@ -317,13 +322,45 @@ export default Vue.extend({
 		})
 
 		svg.node()
+
+		nodes.forEach((node: Node) => {
+			node.links = {}
+			links.forEach((link: LinkElement, linkIndex: number) => {
+				const elements = [link.source.index, link.target.index]
+				if (node.index !== undefined && elements.includes(node.index)) {
+					let targetNode
+					if (link.source.index === node.index) {
+						targetNode = link.target.index
+					} else if (link.target.index === node.index) {
+						targetNode = link.source.index
+					}
+
+					const { time } = data.links[linkIndex]
+
+					let links: Node['links']
+
+					if (node.links !== undefined) {
+						links = node.links
+					}
+
+					if (
+						targetNode !== undefined &&
+						links![targetNode] !== undefined
+					) {
+						node!.links![targetNode][time] = linkIndex
+					} else if (
+						node.links !== undefined &&
+						targetNode !== undefined
+					) {
+						node!.links[targetNode] = {
+							[time]: linkIndex,
+						}
+					}
+				}
+			})
+		})
 	},
 })
-
-interface LinkElement {
-	index: number
-	targets: number[]
-}
 </script>
 
 <style scoped>
